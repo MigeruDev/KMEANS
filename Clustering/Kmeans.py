@@ -6,7 +6,9 @@ class Kmeans:
         #_______________________________________________
         # Número de clusters
         self.k = k
+        # DataSet
         self.data = data
+        # 
         self.n = data.shape[0]
         self.c = data.shape[1]
 
