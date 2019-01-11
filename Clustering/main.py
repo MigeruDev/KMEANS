@@ -1,57 +1,72 @@
-from copy import deepcopy
 
-import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import numpy as np # linear algebra
 from matplotlib import pyplot as plt
+from sklearn.decomposition import PCA as sklearnPCA
 
+from Clustering.Kmeans import Kmeans
 
 df = pd.read_csv("../bank-data2.csv", delimiter=';') #load the dataset
 df.head()
-data = df.values[:, 0:10]
-#category = df.values[:, 10]
 
 #______________________________________________
-#Numero de clusters
+# Numero de clusters
 k = 2
-#Datos de entrenamiento
-n = data.shape[0]
-#Numero de entradas del DataSet
-c = data.shape[1]
-#Colores
+# DataSet
+data = df.values[:, 0:10]
+# Classifications
+y = df['pep']
+# Clustering (para graficar)
+C = df.loc[:,:'mortgage']
+# Classification (para graficar)
+X = df.loc[:,:'pep']
+# Colores
 colors = ['blue', 'green']
+# Categoria
+category = ['NO', 'YES']
 #_______________________________________________
 
-centroides = np.array([data[0],data[400]])  # Almacena los centroides
+kmeans = Kmeans(data, k)
+cluster = kmeans.k_means()
 
-centers_old = np.zeros(centroides.shape)    # Almacena centroides anteriores
-centers_new = deepcopy(centroides)          # Almacena centroides actuales
-clusters = np.zeros(n)                      # Clasifica cada registro del DataSet
-distances = np.zeros((n,k))                 # Almacena las distancias de cada registro con su centroide
+# Obtenemos matriz de confusión
+kmeans.confusion_matrix(y,y,category)
+kmeans.confusion_matrix(y,cluster,category)
 
-error = np.linalg.norm(centers_new-centers_old) # Cuando las distancias son iguales (converge)
-                                                # el error es 0
+# Graficamos el DataSet con Clasificacion
+# Normalizamos los datos
+X_norm = (X - X.min())/(X.max() - X.min())
+# Convertimos N-Dimensiones en 2-D
+pca = sklearnPCA(n_components=2) #2-dimensional PCA
+transformed = pd.DataFrame(pca.fit_transform(X_norm))
 
-while error!=0:                             # Itera hasta que error es 0
+plt.subplots()
+plt.title('Classification')
+plt.scatter(transformed[y==0][0], transformed[y==0][1],
+            label='NO', c='red', s=3)
+plt.scatter(transformed[y==1][0], transformed[y==1][1],
+            label='YES', c='blue', s=3)
 
-    # Para cada registro se calcula la distancia con su centroide
-    for i in range(k):
-        distances[:,i] = np.linalg.norm(data - centers_new[i],axis = 1)
+# Graficamos el DataSet con Clustering
+# Formamos un nuevo data set con nuestro Cluster
+T =np.array(cluster)
+C['cluster'] = pd.Series(T.T, index=C.index)
+print(C)
+print(X)
 
-    clusters = np.argmin(distances,axis=1)
+# Normalizamos los datos
+X_norm = (C - C.min())\
+         /(C.max() - C.min())
+# Convertimos N-Dimensiones en 2-D
+pca = sklearnPCA(n_components=2) #2-dimensional PCA
+transformed = pd.DataFrame(pca.fit_transform(X_norm))
 
-    centers_old = deepcopy(centers_new)
+plt.subplots()
+plt.title('Clustering')
+plt.scatter(transformed[y==0][0], transformed[y==0][1],
+            label='NO', c='red', s=3)
+plt.scatter(transformed[y==1][0], transformed[y==1][1],
+            label='YES', c='blue', s=3)
 
-    # Se actualizan los centroides con la media
-    for i in range(k):
-        centers_new[i] = np.mean(data[clusters==i], axis=0)
-
-    # Calcula el error
-    error = np.linalg.norm(centers_new-centers_old)
-
-    #print("clusters\n",clusters)
-    #print("distances\n",distances)
-    #print("error = ",error)
-    #print("new centers\n",centers_new)
-
-
-#plt.show()
+plt.legend()
+plt.show()
